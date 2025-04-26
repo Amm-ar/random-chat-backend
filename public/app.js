@@ -1,84 +1,42 @@
-// const socket = io('http://localhost:3000'); // Change if server is deployed somewhere else
-const socket = io('https://your-render-app-url.onrender.com');
+// /public/app.js
 
-const chatBox = document.getElementById('chat-box');
-const messageForm = document.getElementById('message-form');
-const messageInput = document.getElementById('message-input');
-const connectBtn = document.getElementById('connect-btn');
+const socket = io(); // Connect to backend
 
-let waitingForConfirmation = false;
-let pendingMessage = '';
-
-// Scroll chat to the bottom
-function scrollChatToBottom() {
-    chatBox.scrollTop = chatBox.scrollHeight;
+// Called when user clicks "Connect to Random Stranger"
+function connectToStranger() {
+  socket.emit('find_partner');
 }
 
-// Add message to chat box
-function addMessage(sender, message, isSystem = false) {
-    const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message');
-    messageDiv.innerHTML = isSystem
-        ? `<small class="text-muted">${message}</small>`
-        : `<strong>${sender}:</strong> ${message}`;
-    chatBox.appendChild(messageDiv);
-    scrollChatToBottom();
-}
-
-// Connect to random stranger
-connectBtn.addEventListener('click', () => {
-    socket.emit('ready');
-    addMessage('System', 'Looking for a stranger...', true);
-    connectBtn.disabled = true;
+// When server finds a partner
+socket.on('partner_found', () => {
+  console.log('Partner found! You can start chatting.');
+  document.getElementById('chat-status').innerText = "Connected to a stranger! Say Hi 👋";
 });
 
-// Handle form submit
-messageForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const message = messageInput.value.trim();
-    if (!message) return;
+// Receiving message from partner
+socket.on('receive_message', (data) => {
+  const chatBox = document.getElementById('chat-box');
+  const messageDiv = document.createElement('div');
+  messageDiv.innerText = "Stranger: " + data.message;
+  chatBox.appendChild(messageDiv);
+});
 
-    if (waitingForConfirmation) {
-        alert('Please confirm sending the previous message first.');
-        return;
-    }
-
-    socket.emit('send_message', message);
+// Sending a message
+function sendMessage() {
+  const messageInput = document.getElementById('messageInput');
+  const message = messageInput.value.trim();
+  if (message) {
+    socket.emit('send_message', { message });
+    const chatBox = document.getElementById('chat-box');
+    const myMessage = document.createElement('div');
+    myMessage.innerText = "You: " + message;
+    chatBox.appendChild(myMessage);
     messageInput.value = '';
-});
+  }
+}
 
-// Receive messages
-socket.on('receive_message', ({ sender, message }) => {
-    addMessage(sender, message);
-});
-
-// Personal info warning
-socket.on('personal_info_warning', ({ originalMessage, warning }) => {
-    if (confirm(`${warning}\n\nDo you want to send it anyway?`)) {
-        socket.emit('confirm_send', originalMessage);
-    } else {
-        addMessage('System', 'Message canceled.', true);
-    }
-});
-
-// Start chat
-socket.on('start_chat', ({ users }) => {
-    addMessage('System', `Connected! You are chatting with: ${users.join(' and ')}`, true);
-});
-
-// Handle user left
-socket.on('user_left', ({ message }) => {
-    addMessage('System', message, true);
-    connectBtn.disabled = false;
-});
-
-// Error messages
-socket.on('error_message', (errorMsg) => {
-    alert(errorMsg);
-});
-
-// Connection problems
-socket.on('disconnect', () => {
-    addMessage('System', 'Disconnected from server.', true);
-    connectBtn.disabled = false;
+// If partner leaves
+socket.on('partner_left', () => {
+  alert("Stranger disconnected. Try finding a new partner.");
+  document.getElementById('chat-status').innerText = "Disconnected.";
 });
