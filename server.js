@@ -1,34 +1,41 @@
 // server.js
+require('dotenv').config(); // Load environment variables
 const express = require('express');
 const http = require('http');
-const socketIo = require('socket.io');
+const { Server } = require('socket.io');
+const cookieParser = require('cookie-parser');
 const path = require('path');
-const { setupChatHandlers } = require('./controllers/chatController');
+
+const chatController = require('./controllers/chatController');
+const adminController = require('./controllers/adminController');
+const { verifyAdmin } = require('./middlewares/authMiddleware');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
-});
+const io = new Server(server);
 
-// Serve static files from /public
+// Middlewares
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Setup socket handlers
-io.on('connection', (socket) => {
-    setupChatHandlers(socket, io);
+// Routes
+app.post('/admin/login', adminController.login);
+app.get('/admin/stats', verifyAdmin, adminController.getStats);
+
+// Frontend pages
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin-login.html'));
 });
 
-// Basic route (optional now)
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.get('/admin-dashboard', verifyAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin-dashboard.html'));
 });
+
+// WebSocket
+chatController(io);
 
 // Start server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

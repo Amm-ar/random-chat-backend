@@ -105,3 +105,33 @@ function matchUsers(io) {
 module.exports = {
     setupChatHandlers
 };
+
+// /controllers/chatController.js
+const { updateStats } = require('./adminController');
+
+let activeUsers = {}; // Store socket ids
+
+module.exports = (io) => {
+  io.on('connection', (socket) => {
+    console.log(`User connected: ${socket.id}`);
+    activeUsers[socket.id] = true;
+    updateStats.incrementUser();
+
+    socket.on('send_message', (data) => {
+      console.log(`Message from ${socket.id}:`, data.message);
+      updateStats.incrementMessage();
+
+      socket.broadcast.emit('receive_message', {
+        from: socket.id,
+        message: data.message
+      });
+    });
+
+    socket.on('disconnect', () => {
+      console.log(`User disconnected: ${socket.id}`);
+      delete activeUsers[socket.id];
+    });
+  });
+};
+
+module.exports.activeUsers = activeUsers;

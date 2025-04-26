@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: random-chat-backend
+    name: random-chat
     env: node
     plan: free
     buildCommand: npm install
@@ -8,3 +8,5 @@ services:
     envVars:
       - key: PORT
         value: 10000
+      - key: ADMIN_PASSWORD
+        value: SuperStrongSecret123
