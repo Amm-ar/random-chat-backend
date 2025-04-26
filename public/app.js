@@ -1,4 +1,5 @@
-const socket = io('http://localhost:3000'); // Change if server is deployed somewhere else
+// const socket = io('http://localhost:3000'); // Change if server is deployed somewhere else
+const socket = io('https://your-render-app-url.onrender.com');
 
 const chatBox = document.getElementById('chat-box');
 const messageForm = document.getElementById('message-form');
