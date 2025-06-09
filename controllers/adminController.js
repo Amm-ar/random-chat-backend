@@ -37,5 +37,6 @@ exports.getStats = (req, res) => {
 // Export update functions
 exports.updateStats = {
   incrementUser: () => { totalUsers++; },
-  incrementMessage: () => { totalMessages++; }
+  incrementMessage: () => { totalMessages++; },
+  decrementUser: () => { totalUsers--; },
 };
